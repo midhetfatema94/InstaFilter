@@ -12,6 +12,7 @@ import CoreImage.CIFilterBuiltins
 struct ContentView: View {
     @State private var image: Image?
     @State private var showingImagePicker = false
+    @State private var inputImage: UIImage?
     
     var body: some View {
         VStack {
@@ -25,33 +26,27 @@ struct ContentView: View {
                 Text("Select Image")
             })
         }
-        .sheet(isPresented: $showingImagePicker, content: {
-            ImagePicker()
+        .sheet(isPresented: $showingImagePicker, onDismiss: loadImage, content: {
+            ImagePicker(image: self.$inputImage)
         })
         .onAppear(perform: loadImage)
     }
     
     func loadImage() {
-        guard let inputImage = UIImage(named: "example") else { return }
-        let beginImage = CIImage(image: inputImage)
-        
-        let context = CIContext()
-        let currentFilter = CIFilter.pixellate()
-        
-        currentFilter.inputImage = beginImage
-        currentFilter.scale = 100
-        
-        // get a CIImage from our filter or exit if that fails
-        guard let outputImage = currentFilter.outputImage else { return }
+        guard let inputImage = inputImage else { return }
+        image = Image(uiImage: inputImage)
+        let imageSaver = ImageSaver()
+        imageSaver.writeToPhotoAlbum(image: inputImage)
+    }
+}
 
-        // attempt to get a CGImage from our CIImage
-        if let cgimg = context.createCGImage(outputImage, from: outputImage.extent) {
-            // convert that to a UIImage
-            let uiImage = UIImage(cgImage: cgimg)
+class ImageSaver: NSObject {
+    func writeToPhotoAlbum(image: UIImage) {
+        UIImageWriteToSavedPhotosAlbum(image, self, #selector(saveError), nil)
+    }
 
-            // and convert that to a SwiftUI image
-            image = Image(uiImage: uiImage)
-        }
+    @objc func saveError(_ image: UIImage, didFinishSavingWithError error: Error?, contextInfo: UnsafeRawPointer) {
+        print("Save finished!")
     }
 }
 
