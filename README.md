@@ -1,6 +1,6 @@
 # InstaFilter
 
-Image Filtering application in using ``CoreImage's`` built-in filter library and image processing APIs in Swift
+Image Filtering application using ``CoreImage's`` built-in filter library and image processing APIs in Swift
 
 ### Features are:
 * Creating custom bindings in SwiftUI
