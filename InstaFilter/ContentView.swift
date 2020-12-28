@@ -12,12 +12,14 @@ import CoreImage.CIFilterBuiltins
 struct ContentView: View {
     @State private var image: Image?
     @State private var filterIntensity = 0.5
+    @State private var filterRadius = 0.5
     
     @State private var showingImagePicker = false
     @State private var inputImage: UIImage?
     @State private var finalImage: UIImage?
     
     @State var currentFilter: CIFilter = CIFilter.sepiaTone()
+    @State var currentFilterTitle = "Change from - \(CIFilter.sepiaTone().name)"
     let context = CIContext()
     
     @State private var showingFilterSheet = false
@@ -34,6 +36,16 @@ struct ContentView: View {
             },
             set: {
                 self.filterIntensity = $0
+                self.applyProcessing()
+            }
+        )
+        
+        let radius = Binding<Double>(
+            get: {
+                self.filterRadius
+            },
+            set: {
+                self.filterRadius = $0
                 self.applyProcessing()
             }
         )
@@ -58,17 +70,28 @@ struct ContentView: View {
                     self.showingImagePicker = true
                 }
                 
-                HStack {
-                    Text("Intensity")
-                    Slider(value: intensity)
+                if currentFilter.inputKeys.contains(kCIInputIntensityKey) ||
+                    currentFilter.inputKeys.contains(kCIInputScaleKey) {
+                    HStack {
+                        Text("Intensity")
+                        Slider(value: intensity)
+                    }
+                    .padding(.vertical)
                 }
-                .padding(.vertical)
+                
+                if currentFilter.inputKeys.contains(kCIInputRadiusKey) {
+                    HStack {
+                        Text("Radius")
+                        Slider(value: radius)
+                    }
+                    .padding(.vertical)
+                }
                 
                 HStack {
                     Button(action: {
                         self.showingFilterSheet = true
                     }, label: {
-                        Text("Change filter")
+                        Text(self.currentFilterTitle)
                     })
                     
                     Spacer()
@@ -119,7 +142,7 @@ struct ContentView: View {
             currentFilter.setValue(filterIntensity, forKey: kCIInputIntensityKey)
         }
         if inputKeys.contains(kCIInputRadiusKey) {
-            currentFilter.setValue(filterIntensity * 200, forKey: kCIInputRadiusKey)
+            currentFilter.setValue(filterRadius * 200, forKey: kCIInputRadiusKey)
         }
         if inputKeys.contains(kCIInputScaleKey) {
             currentFilter.setValue(filterIntensity * 10, forKey: kCIInputScaleKey)
@@ -136,11 +159,17 @@ struct ContentView: View {
     
     func setFilter(_ filter: CIFilter) {
         currentFilter = filter
+        currentFilterTitle = "Change from - \(currentFilter.name)"
         loadImage()
     }
     
     func saveImage() {
-        guard let processedImage = finalImage else { return }
+        guard let processedImage = finalImage else {
+            self.saveTitle = "Saving Failed!"
+            self.saveMessage = "There is no image to process"
+            self.showingSaveMessage = true
+            return
+        }
 
         let imageSaver = ImageSaver()
         
